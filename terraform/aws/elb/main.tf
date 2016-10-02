@@ -1,6 +1,6 @@
 variable "elb_name" { default = "kube-master" }
 variable "health_check_target" { default = "HTTP:8080/healthz" }
-variable "instances" {}
+variable "instances" { type = "list" }
 variable "subnets" { type = "list" }
 variable "security_groups" {}
 
