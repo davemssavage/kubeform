@@ -51,7 +51,7 @@ module "aws-keypair" {
 
 # certificates
 module "ca" {
-  source            = "github.com/davemssavage/tf_tls/ca"
+  source            = "git::https://github.com/davemssavage/tf_tls/?ref=terraform-7//ca"
   organization      = "${var.organization}"
   ca_count          = "${var.masters + var.workers + var.edge-routers}"
   deploy_ssh_hosts  = "${concat(aws_instance.edge-router.*.public_ip, concat(aws_instance.master.*.public_ip, aws_instance.worker.*.public_ip))}"
@@ -60,18 +60,17 @@ module "ca" {
 }
 
 module "etcd_cert" {
-  source             = "github.com/davemssavage/tf_tls/etcd"
+  source             = "git::https://github.com/davemssavage/tf_tls/?ref=terraform-7//etcd"
   ca_cert_pem        = "${module.ca.ca_cert_pem}"
   ca_private_key_pem = "${module.ca.ca_private_key_pem}"
 }
 
 module "kube_master_certs" {
-  source                = "github.com/davemssavage/tf_tls/kubernetes/master"
+  source                = "git::https://github.com/davemssavage/tf_tls/?ref=terraform-7//kubernetes/master"
   ca_cert_pem           = "${module.ca.ca_cert_pem}"
   ca_private_key_pem    = "${module.ca.ca_private_key_pem}"
   ip_addresses          = "${concat(aws_instance.master.*.private_ip, aws_instance.master.*.public_ip)}"
   dns_names             = "${compact(module.master_elb.elb_dns_name)}"
-  deploy_ssh_hosts      = "${compact(aws_instance.master.*.public_ip)}"
   master_count          = "${var.masters}"
   validity_period_hours = "8760"
   early_renewal_hours   = "720"
@@ -80,11 +79,10 @@ module "kube_master_certs" {
 }
 
 module "kube_kubelet_certs" {
-  source                = "github.com/davemssavage/tf_tls/kubernetes/kubelet"
+  source                = "git::https://github.com/davemssavage/tf_tls/?ref=terraform-7//kubernetes/kubelet"
   ca_cert_pem           = "${module.ca.ca_cert_pem}"
   ca_private_key_pem    = "${module.ca.ca_private_key_pem}"
   ip_addresses          = "${concat(aws_instance.edge-router.*.private_ip, concat(aws_instance.master.*.private_ip, aws_instance.worker.*.private_ip))}"
-  deploy_ssh_hosts      = "${concat(aws_instance.edge-router.*.public_ip, concat(aws_instance.master.*.public_ip, aws_instance.worker.*.public_ip))}"
   kubelet_count         = "${var.masters + var.workers + var.edge-routers}"
   validity_period_hours = "8760"
   early_renewal_hours   = "720"
@@ -93,7 +91,7 @@ module "kube_kubelet_certs" {
 }
 
 module "kube_admin_cert" {
-  source                = "github.com/davemssavage/tf_tls/kubernetes/admin"
+  source                = "git::https://github.com/davemssavage/tf_tls/?ref=terraform-7//kubernetes/admin"
   ca_cert_pem           = "${module.ca.ca_cert_pem}"
   ca_private_key_pem    = "${module.ca.ca_private_key_pem}"
   kubectl_server_ip     = "${module.master_elb.elb_dns_name}"
@@ -104,7 +102,6 @@ module "docker_daemon_certs" {
   ca_cert_pem           = "${module.ca.ca_cert_pem}"
   ca_private_key_pem    = "${module.ca.ca_private_key_pem}"
   ip_addresses_list     = "${concat(aws_instance.edge-router.*.private_ip, concat(aws_instance.master.*.private_ip, aws_instance.worker.*.private_ip))}"
-  deploy_ssh_hosts      = "${concat(aws_instance.edge-router.*.public_ip, concat(aws_instance.master.*.public_ip, aws_instance.worker.*.public_ip))}"
   docker_daemon_count   = "${var.masters + var.workers + var.edge-routers}"
   private_key           = "${tls_private_key.ssh.private_key_pem}"
   validity_period_hours = 8760
